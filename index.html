@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>影像壓縮比較小幫手</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+      color: #eee;
+      text-align: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    h1 {
+      color: #00d4ff;
+      font-size: 1.8em;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    p { color: #ccc; margin-bottom: 15px; }
+    .box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      display: inline-block;
+      width: 90%;
+      max-width: 600px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 20px;
+    }
+    .upload-area {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    #fileInput {
+      opacity: 0;
+      position: absolute;
+      pointer-events: none;
+    }
+    .upload-btn {
+      padding: 12px 30px;
+      border: none;
+      background: linear-gradient(90deg, #00d4ff, #007bff);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1em;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .upload-btn:hover {
+      background: linear-gradient(90deg, #00b4cc, #0056b3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+    }
+    .upload-new-btn {
+      background: linear-gradient(90deg, #28a745, #20c997);
+      margin-left: 10px;
+    }
+    .upload-new-btn:hover {
+      background: linear-gradient(90deg, #218838, #1aa179);
+    }
+    img#preview {
+      max-width: 100%;
+      max-height: 320px;
+      margin-top: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+      display: none;
+    }
+    img#preview.show { display: block; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      color: #eee;
+      font-size: 0.95em;
+    }
+    th, td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px;
+    }
+    th { 
+      background: rgba(255, 255, 255, 0.08);
+      font-weight: 600;
+    }
+    tr:hover { background: rgba(255, 255, 255, 0.05); }
+    .green { background-color: rgba(40, 167, 69, 0.2); color: #9df7b8; }
+    .yellow { background-color: rgba(255, 193, 7, 0.2); color: #ffe58f; }
+    .red { background-color: rgba(220, 53, 69, 0.2); color: #f5a3a3; }
+    .recommend-row {
+      background: rgba(0, 212, 255, 0.3);
+      color: #fff;
+      font-weight: bold;
+      border: 2px solid #00d4ff;
+    }
+    .recommend {
+      margin-top: 25px;
+      padding: 15px;
+      border-radius: 12px;
+      background: rgba(0, 212, 255, 0.15);
+      border: 1px solid #00d4ff;
+      display: none;
+      color: #aef9ff;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+    button {
+      margin-top: 8px;
+      padding: 8px 15px;
+      border: none;
+      background: linear-gradient(90deg, #00d4ff, #007bff);
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9em;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #00b4cc, #0056b3);
+      transform: translateY(-1px);
+    }
+    .loading {
+      color: #00d4ff;
+      margin-top: 15px;
+      font-size: 0.9em;
+      display: none;
+    }
+    .loading.show { display: block; }
+    .file-info {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+      text-align: left;
+    }
+    .file-info.show { display: block; }
+    .file-info div {
+      margin: 5px 0;
+      font-size: 0.9em;
+    }
+    .button-group {
+      margin-top: 15px;
+      display: none;
+    }
+    .button-group.show { display: block; }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4em; }
+      .box { padding: 20px; }
+      .upload-btn { padding: 10px 20px; font-size: 0.9em; }
+      .upload-new-btn { margin-left: 0; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🌈 影像壓縮比較小幫手</h1>
+  <p>上傳圖片,系統會自動轉換 PNG / JPG / WEBP 並比較檔案大小與畫質</p>
+  <p style="font-size: 0.85em; color: #aaa;">✨ 採用高精度 SSIM 計算(SSIM ≥ 0.98 = 肉眼幾乎無損)</p>
+
+  <div class="box">
+    <div class="upload-area">
+      <input type="file" id="fileInput" accept="image/*">
+      <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('fileInput').click()">
+        📤 選擇圖片
+      </button>
+      <button class="upload-btn upload-new-btn" id="uploadNewBtn" onclick="resetAndUpload()">
+        🔄 上傳新圖片
+      </button>
+    </div>
+    
+    <div class="file-info" id="fileInfo"></div>
+    
+    <img id="preview">
+    
+    <div class="loading" id="loading">
+      <div>⏳ 正在分析圖片品質...</div>
+      <div style="font-size: 0.8em; margin-top: 5px;">請稍候,這可能需要幾秒鐘</div>
+    </div>
+    
+    <div id="result"></div>
+    
+    <div class="button-group" id="buttonGroup">
+      <button class="upload-btn upload-new-btn" onclick="resetAndUpload()" style="font-size: 1em; padding: 10px 20px;">
+        🔄 上傳新圖片
+      </button>
+    </div>
+  </div>
+
+  <div id="recommendBox" class="recommend"></div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const result = document.getElementById('result');
+    const recommendBox = document.getElementById('recommendBox');
+    const loading = document.getElementById('loading');
+    const fileInfo = document.getElementById('fileInfo');
+    const uploadNewBtn = document.getElementById('uploadNewBtn');
+    const buttonGroup = document.getElementById('buttonGroup');
+
+    // 初始狀態隱藏上傳新圖片按鈕
+    uploadNewBtn.style.display = 'none';
+
+    function resetAndUpload() {
+      // 重置所有顯示
+      preview.classList.remove('show');
+      preview.src = '';
+      result.innerHTML = '';
+      recommendBox.style.display = 'none';
+      loading.classList.remove('show');
+      fileInfo.classList.remove('show');
+      buttonGroup.classList.remove('show');
+      uploadNewBtn.style.display = 'none';
+      
+      // 清空 input 並觸發點擊
+      fileInput.value = '';
+      fileInput.click();
+    }
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // 顯示上傳新圖片按鈕
+      uploadNewBtn.style.display = 'inline-flex';
+
+      const fileNameBase = file.name.replace(/\.[^/.]+$/, "");
+      const fileSizeKB = (file.size / 1024).toFixed(2);
+      
+      // 顯示檔案資訊
+      fileInfo.innerHTML = `
+        <div><strong>📁 檔案名稱:</strong> ${file.name}</div>
+        <div><strong>💾 原始大小:</strong> ${fileSizeKB} KB</div>
+        <div><strong>📏 格式:</strong> ${file.type || '未知'}</div>
+      `;
+      fileInfo.classList.add('show');
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        preview.src = event.target.result;
+        preview.classList.add('show');
+        loading.classList.add('show');
+        result.innerHTML = '';
+        recommendBox.style.display = 'none';
+        buttonGroup.classList.remove('show');
+
+        const img = new Image();
+        img.onload = async () => {
+          // 更新圖片尺寸資訊
+          fileInfo.innerHTML += `<div><strong>🖼️ 圖片尺寸:</strong> ${img.width} × ${img.height} px</div>`;
+
+          const formats = ['image/png', 'image/jpeg', 'image/webp'];
+          const formatNames = { 'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WEBP' };
+          const results = [];
+
+          for (const format of formats) {
+            const { dataUrl, size } = compressImage(img, format, 0.92);
+            const ssim = await calculateSSIM_improved(img, await loadImage(dataUrl));
+            results.push({ format, formatName: formatNames[format], size, ssim, dataUrl });
+          }
+
+          loading.classList.remove('show');
+          displayResults(results, fileNameBase);
+          buttonGroup.classList.add('show');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function compressImage(image, format, quality) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+      const dataUrl = canvas.toDataURL(format, quality);
+      const size = Math.round((dataUrl.length * 3 / 4) / 1024);
+      return { dataUrl, size };
+    }
+
+    function loadImage(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = dataUrl;
+      });
+    }
+
+    async function calculateSSIM_improved(img1, img2) {
+      const canvas1 = document.createElement('canvas');
+      const canvas2 = document.createElement('canvas');
+      const ctx1 = canvas1.getContext('2d');
+      const ctx2 = canvas2.getContext('2d');
+      const w = Math.min(img1.width, img2.width);
+      const h = Math.min(img1.height, img2.height);
+      canvas1.width = w; canvas1.height = h;
+      canvas2.width = w; canvas2.height = h;
+      ctx1.drawImage(img1, 0, 0, w, h);
+      ctx2.drawImage(img2, 0, 0, w, h);
+      const data1 = ctx1.getImageData(0, 0, w, h).data;
+      const data2 = ctx2.getImageData(0, 0, w, h).data;
+
+      const gray1 = [], gray2 = [];
+      for (let i = 0; i < data1.length; i += 4) {
+        gray1.push(0.299*data1[i] + 0.587*data1[i+1] + 0.114*data1[i+2]);
+        gray2.push(0.299*data2[i] + 0.587*data2[i+1] + 0.114*data2[i+2]);
+      }
+
+      const windowSize = 8;
+      const stepSize = 4;
+      let totalSSIM = 0, count = 0;
+
+      for (let y = 0; y <= h - windowSize; y += stepSize) {
+        for (let x = 0; x <= w - windowSize; x += stepSize) {
+          const block1 = [], block2 = [];
+          for (let j = 0; j < windowSize; j++) {
+            for (let i = 0; i < windowSize; i++) {
+              const idx = (y + j) * w + (x + i);
+              block1.push(gray1[idx]);
+              block2.push(gray2[idx]);
+            }
+          }
+          const ssimVal = calcBlockSSIM(block1, block2);
+          totalSSIM += ssimVal;
+          count++;
+        }
+      }
+      return Math.min(Math.max(totalSSIM / count, 0), 1);
+    }
+
+    function calcBlockSSIM(block1, block2) {
+      const mean1 = avg(block1);
+      const mean2 = avg(block2);
+      const var1 = variance(block1, mean1);
+      const var2 = variance(block2, mean2);
+      const cov = covariance(block1, block2, mean1, mean2);
+      const L = 255, K1 = 0.01, K2 = 0.03;
+      const C1 = (K1 * L) ** 2;
+      const C2 = (K2 * L) ** 2;
+      return ((2 * mean1 * mean2 + C1) * (2 * cov + C2)) /
+             ((mean1 ** 2 + mean2 ** 2 + C1) * (var1 + var2 + C2));
+    }
+
+    function avg(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
+    function variance(arr, mean) {
+      return arr.reduce((a,b)=>a+(b-mean)**2,0)/arr.length;
+    }
+    function covariance(a, b, meanA, meanB) {
+      let sum = 0;
+      for (let i=0; i<a.length; i++) sum += (a[i]-meanA)*(b[i]-meanB);
+      return sum / a.length;
+    }
+
+    function displayResults(results, baseName) {
+      const candidates = results.filter(r => r.ssim >= 0.98);
+      let best = candidates.length > 0 ? candidates.sort((a, b) => a.size - b.size)[0] : null;
+
+      const orderedResults = best
+        ? [best, ...results.filter(r => r !== best).sort((a, b) => b.ssim - a.ssim)]
+        : results.sort((a, b) => b.ssim - a.ssim);
+
+      result.innerHTML = `
+        <table>
+          <tr><th>格式</th><th>大小 (KB)</th><th>SSIM</th><th>品質評估</th><th>下載</th></tr>
+          ${orderedResults.map(r => {
+            const isBest = r === best;
+            const color = isBest ? 'recommend-row' :
+              r.ssim >= 0.99 ? 'green' :
+              r.ssim >= 0.98 ? 'yellow' : 'red';
+            const tag = isBest ? '⭐ 最推薦' : '';
+            const quality = r.ssim >= 0.99 ? '極佳' :
+              r.ssim >= 0.98 ? '優良' :
+              r.ssim >= 0.95 ? '尚可' : '不佳';
+            const ext = r.formatName.toLowerCase();
+            return `
+              <tr class="${color}">
+                <td><strong>${r.formatName}</strong> ${tag}</td>
+                <td>${r.size}</td>
+                <td>${r.ssim.toFixed(4)}</td>
+                <td>${quality}</td>
+                <td><a href="${r.dataUrl}" download="${baseName}.${ext}"><button>下載</button></a></td>
+              </tr>`;
+          }).join('')}
+        </table>`;
+
+      if (best) {
+        recommendBox.style.display = 'block';
+        const qualityDesc = best.ssim >= 0.99 ? '完美畫質,肉眼無法分辨差異' : '優良畫質,肉眼幾乎看不出差別';
+        recommendBox.innerHTML = `
+          <div style="font-size: 1.1em; margin-bottom: 10px;">🎯 <strong>最推薦格式:${best.formatName}</strong></div>
+          📏 檔案大小:${best.size} KB<br>
+          🌈 SSIM 指數:${best.ssim.toFixed(4)}<br>
+          ✨ 品質評估:${qualityDesc}<br>
+          <a href="${best.dataUrl}" download="${baseName}.${best.formatName.toLowerCase()}">
+            <button style="margin-top: 12px; font-size: 1.05em; padding: 10px 20px;">⬇️ 下載推薦格式</button>
+          </a>
+        `;
+      } else {
+        recommendBox.style.display = 'block';
+        recommendBox.innerHTML = `
+          ⚠️ <strong>注意:</strong>所有格式的 SSIM 都低於 0.98<br>
+          建議使用 PNG 格式以保持最佳畫質,或提高壓縮品質參數<br>
+          <small>(SSIM < 0.98 可能在文字、邊緣等區域有輕微模糊)</small>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
